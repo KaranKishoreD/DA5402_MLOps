@@ -82,15 +82,15 @@ def health_check():
 def schema():
     return {
         "model_version": model_version,
-        "expected_features": expected_features,
-        "feature_types": metadata["feature_types"],
-        "example input": {
+        "features": feature_stats,
+        "example_payload": {
             "features": {
-                f: round(stats["mean"], 3) if stats["type"] in ["int64", "float64"] else "example_category"
-                for f, stats in metadata["feature_stats"].items()
+                f: round(stats["mean"], 3)
+                for f, stats in feature_stats.items()
             }
         }
     }
+
 
 @app.post("/predict")
 def predict(request: InferenceRequest):
