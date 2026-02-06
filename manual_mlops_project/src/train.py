@@ -60,14 +60,22 @@ if model_path.exists():
     )
 
 try:
-    status = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd = PROJ_ROOT
+    dirty = subprocess.check_output(
+        ["git", "rev-parse", "--porcelain", "--untracked-files=no"], cwd = PROJ_ROOT
     ).decode("utf-8").strip()
 except Exception as e:
     git_commit = "unknown"
 
-if status:
+if dirty:
     raise RuntimeError(f"Commit changes before training.")
+
+try:
+    git_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"],
+        cwd=PROJ_ROOT
+    ).decode("utf-8").strip()
+except Exception:
+    git_commit = "unknown"
 
 joblib.dump(model, model_path)
 
