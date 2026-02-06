@@ -1,0 +1,115 @@
+import csv
+import json
+import yaml
+import joblib
+import pandas as pd
+from pathlib import Path
+from typing import Dict, Any
+from datetime import datetime
+from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+
+PROJ_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_PATH = PROJ_ROOT / "config.yaml"
+MODELS_DIR = PROJ_ROOT / "models"
+DEPLOYMENT_LOG = PROJ_ROOT / "deployment_log.csv"
+
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+
+model_version = config["training"]["model_version"]
+model_path = MODELS_DIR / f"{model_version}_model.joblib"
+metadata_path = MODELS_DIR / f"{model_version}_metadata.json"
+
+if not model_path.exists():
+    raise FileNotFoundError(
+        f"""Model file for version {model_version} not found.
+        Please run src/train.py to train the model."""
+    )
+
+if not metadata_path.exists():
+    raise FileNotFoundError(
+        f"""Metadata file for version {model_version} not found.
+        Please run src/train.py to train the model."""
+    )
+
+log_exists = DEPLOYMENT_LOG.exists()
+with open(DEPLOYMENT_LOG, "a") as f:
+    writer = csv.writer(f)
+    if not log_exists:
+        writer.writerow(["timestamp", "model_version", "status"])
+    writer.writerow([datetime.now().isoformat(), model_version, "deployed"])
+
+model = joblib.load(model_path)
+
+with open(metadata_path, "r") as f:
+    metadata = json.load(f)
+
+expected_features = metadata["feature_names"]
+
+processed_dir = PROJ_ROOT / config["data"]["processed_dir"]
+data_version = config["training"]["data_version"]
+train_path = processed_dir / f"{data_version}_train.csv"
+
+if not train_path.exists():
+    raise FileNotFoundError(f"Training data {train_path} not found")
+
+train_df = pd.read_csv(train_path)
+X_train = train_df[expected_features]
+
+feature_stats = {
+    col: {
+        "mean": float(X_train[col].mean()),
+        "std": float(X_train[col].std()),
+        "min": float(X_train[col].min()),
+        "max": float(X_train[col].max())
+    }
+    for col in expected_features
+}
+
+app = FastAPI(title = "ML Inference API", version = "1.0")
+
+class InferenceRequest(BaseModel):
+    features: Dict[str, Any]
+
+@app.get("/")
+def health_check():
+    return {"status": "ok",
+            "model_version": model_version,
+            "expected_features": expected_features}
+
+@app.get("/schema")
+def schema():
+    return {
+        "model_version": model_version,
+        "expected_features": expected_features,
+        "feature_types": metadata["feature_types"],
+        "example input": {
+            "features": {
+                f: round(stats["mean"], 3) if stats["type"] in ["int64", "float64"] else "example_category"
+                for f, stats in metadata["feature_stats"].items()
+            }
+        }
+    }
+
+@app.post("/predict")
+def predict(request: InferenceRequest):
+    input_features = request.features
+    missing = set(expected_features) - set(input_features.keys())
+    extra = set(input_features.keys()) - set(expected_features)
+
+    if missing or extra:
+        raise HTTPException(
+            status_code = 400,
+            detail = {
+                "message": "Invalid input features",
+                "missing_features": list(missing),
+                "extra_features": list(extra)
+            }
+        )
+    df = pd.DataFrame([[input_features[f] for f in expected_features]], columns = expected_features)
+    prediction = model.predict(df)[0]
+    return {
+        "model_version": model_version,
+        "prediction": int(prediction)
+    }
