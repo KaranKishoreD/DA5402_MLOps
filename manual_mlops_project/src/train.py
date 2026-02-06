@@ -59,16 +59,16 @@ if model_path.exists():
         Please update the model version in config.yaml"""
     )
 
+
 try:
-    dirty = subprocess.check_output(
-        ["git", "rev-parse", "--porcelain", "--untracked-files=no"], cwd = PROJ_ROOT
-    ).decode("utf-8").strip()
-except Exception as e:
-    git_commit = "unknown"
+    subprocess.check_call(
+        ["git", "diff-index", "--quiet", "HEAD", "--"],
+        cwd=PROJ_ROOT
+    )
+except subprocess.CalledProcessError:
+    raise RuntimeError("Commit tracked changes before training.")
 
-if dirty:
-    raise RuntimeError(f"Commit changes before training.")
-
+# ---- Capture commit hash ----
 try:
     git_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"],
