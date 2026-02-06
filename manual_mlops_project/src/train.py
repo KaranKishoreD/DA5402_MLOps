@@ -77,6 +77,7 @@ metadata = {
     "accuracy": accuracy,
     "git_commit": git_commit,
     "timestamp": datetime.now().isoformat(),
+    "feature_names": list(X_train.columns),
     "hyperparameters": params,
     "metrics": {
         "accuracy": accuracy,
@@ -98,6 +99,7 @@ Algorithm: {algorithm}
 Accuracy: {accuracy:.4f}
 Git Commit: {git_commit}
 Timestamp: {metadata['timestamp']}
+Feature Names: {metadata['feature_names']}
 Hyperparameters: {params}
 Metrics: {metadata['metrics']}
 Classification Report: {metadata['metrics']['classification_report']}\n
