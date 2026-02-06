@@ -59,15 +59,6 @@ if model_path.exists():
         Please update the model version in config.yaml"""
     )
 
-
-try:
-    subprocess.check_call(
-        ["git", "diff-index", "--quiet", "HEAD", "--"],
-        cwd=PROJ_ROOT
-    )
-except subprocess.CalledProcessError:
-    raise RuntimeError("Commit tracked changes before training.")
-
 # ---- Capture commit hash ----
 try:
     git_commit = subprocess.check_output(
