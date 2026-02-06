@@ -58,7 +58,7 @@ if model_path.exists():
         f"""Model file already exists for version {model_version}.
         Please update the model version in config.yaml"""
     )
-joblib.dump(model, model_path)
+
 try:
     status = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd = PROJ_ROOT
@@ -68,6 +68,8 @@ except Exception as e:
 
 if status:
     raise RuntimeError(f"Commit changes before training.")
+
+joblib.dump(model, model_path)
 
 metadata = {
     "model_version": model_version,
