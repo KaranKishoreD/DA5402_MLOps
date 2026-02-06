@@ -6,7 +6,9 @@ author: "Karan_Kishore"
 data:
   raw_path: "data/raw/ai4i2020.csv"
   processed_dir: "data/processed"
-  current_version: "v1"
+  train_size: 7000
+  test_size: 3000
+  current_version: "v2"
 
 # Hyperparameters
 model_params:
@@ -20,3 +22,12 @@ deployment:
   model_path: "models/model_v1.pkl"
   port: 5000
   threshold: 0.75
+
+features:
+  drop_columns:
+    - "UDI"
+    - "Product ID"
+  target: "Machine failure"
+  categorical:
+    - "Type"
+  scale_numeric: true
