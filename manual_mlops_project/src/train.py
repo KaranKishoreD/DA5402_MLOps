@@ -97,7 +97,7 @@ metadata_path = model_dir / f"{model_version}_metadata.json"
 with open(metadata_path, "w") as f:
     json.dump(metadata, f, indent = 4)
 
-registry_log = model_dir / "registry_log.txt"
+registry_log = model_dir / "model_metadata.log"
 with open(registry_log, "a") as f:
     f.write(
         f"""
@@ -108,7 +108,8 @@ Accuracy: {accuracy:.4f}
 Git Commit: {git_commit}
 Timestamp: {metadata['timestamp']}
 Hyperparameters: {params}
-Metrics: {metadata['metrics']}\n
+Metrics: {metadata['metrics']}
+Classification Report: {metadata['metrics']['classification_report']}\n
 """
     )
 
