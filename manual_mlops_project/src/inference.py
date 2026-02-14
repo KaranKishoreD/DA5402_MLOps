@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from fastapi import FastAPI, HTTPException
 
 PROJ_ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +51,8 @@ processed_dir = PROJ_ROOT / config["data"]["processed_dir"]
 data_version = config["training"]["data_version"]
 train_path = processed_dir / f"{data_version}_train.csv"
 
+scaler_path = processed_dir / f"{data_version}_scaler.joblib"
+scaler = joblib.load(scaler_path)
 if not train_path.exists():
     raise FileNotFoundError(f"Training data {train_path} not found")
 
@@ -70,13 +72,62 @@ feature_stats = {
 app = FastAPI(title = "ML Inference API", version = "1.0")
 
 class InferenceRequest(BaseModel):
-    features: Dict[str, Any]
+    Air_temperature_K: float = Field(
+        ...,
+        alias="Air temperature [K]",
+        ge = 0,
+        description = "Ambient air temperature"
+    )
+    Process_Temperature_K: float = Field(
+        ...,
+        alias="Process temperature [K]",
+        ge = 0,
+        description = "Machine process temperature"
+    )
+    Rotational_speed_rpm: float = Field(
+        ...,
+        alias="Rotational speed [rpm]",
+        ge = 0,
+        description = "Spindnle rotation speed"
+    )
+    Torque_Nm: float = Field(
+        ...,
+        alias="Torque [Nm]",
+        ge = 0,
+        description="Applied mechanical torque"
+    )
+    Tool_wear_min: float= Field(
+        ...,
+        alias="Tool wear [min]",
+        ge = 0,
+        description =  "Tool wear duration"
+    )
+    TWF: int = Field(..., ge = 0, le = 1, description = "Tool wear failure")
+    HDF: int = Field(..., ge = 0, le = 1, description = "Heat dissipation failure")
+    PWF: int = Field(..., ge = 0, le = 1, description = "Power failure flag")
+    OSF: int = Field(..., ge = 0, le = 1, description = "Overstrain failure flag")
+    RNF: int = Field(..., ge = 0, le = 1, description = "Random failure flag")
+    Type_L: int = Field(..., ge = 0, le = 1, description = "Machine type L")
+    Type_M: int = Field(..., ge = 0, le = 1, description = "Machine type M")
+
+    @model_validator(mode = "after")
+    def validate_machine_type(self):
+        if self.Type_L + self.Type_M > 1: # If both are zero, it implies type H
+            raise ValueError("Only one machine type allowed")
+        return self
+# class InferenceRequest(BaseModel):
+#    features: Dict[str, Any]
+
+numeric_cols_path = processed_dir / f"{data_version}_numeric_cols.json"
+with open(numeric_cols_path, "r") as f:
+    numeric_cols = json.load(f)
 
 @app.get("/")
 def health_check():
     return {"status": "ok",
             "model_version": model_version,
-            "expected_features": expected_features}
+            "expected_features": expected_features,
+            "example_payload":feature_stats}
 
 @app.get("/schema")
 def schema():
@@ -94,7 +145,37 @@ def schema():
 
 @app.post("/predict")
 def predict(request: InferenceRequest):
-    input_features = request.features
+    input_dict = request.model_dump()
+    
+    input_dict = request.model_dump(by_alias=True)
+    df = pd.DataFrame([input_dict])
+    df = df[expected_features]
+
+    df[numeric_cols] = scaler.transform(df[numeric_cols])
+
+    prediction = model.predict(df)[0]
+    proba = model.predict_proba(df)[0]
+    return {
+        "model_version": model_version,
+        "prediction": int(prediction),
+        "probability_class_0": float(proba[0]),
+        "probability_class_1": float(proba[1])
+    }
+    """
+    input_features = {
+        "Air Temperature [K]": request.Air_temperature_K,
+        "Process Temperature [K]": request.Process_Temperature_K,
+        "Rotational speed [rpm]": request.Rotational_speed_rpm,
+        "Torque [Nm]": request.Torque_Nm,
+        "Tool wear [min]": request.Tool_wear_min,
+        "TWF": request.TWF,
+        "HDF": request.HDF,
+        "PWF": request.PWF,
+        "OSF": request.OSF,
+        "RNF": request.RNF,
+        "Type_L": request.Type_L,
+        "Type_M": request.Type_M
+    }
     missing = set(expected_features) - set(input_features.keys())
     extra = set(input_features.keys()) - set(expected_features)
 
@@ -113,3 +194,4 @@ def predict(request: InferenceRequest):
         "model_version": model_version,
         "prediction": int(prediction)
     }
+    """

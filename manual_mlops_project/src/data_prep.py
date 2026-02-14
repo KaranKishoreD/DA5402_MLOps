@@ -1,4 +1,6 @@
+import json
 import yaml
+import joblib
 import pandas as pd
 from pathlib import Path
 from sklearn.preprocessing import StandardScaler
@@ -14,7 +16,6 @@ processed_dir = PROJ_ROOT / config["data"]["processed_dir"]
 version = config["data"]["current_version"]
 
 processed_dir.mkdir(exist_ok = True)
-
 df = pd.read_csv(raw_path)
 df = df.dropna()
 # Add code to preprocess the data (e.g., handle missing values, encode categorical variables, scale features)
@@ -36,10 +37,14 @@ y_test = y.iloc[train_size:].copy()
 
 if scale_numeric:
     scaler = StandardScaler()
-    numeric_cols = X_train.select_dtypes(include=["int64", "float64"]).columns
+    numeric_cols = X_train.select_dtypes(include=["int64", "float64"]).columns.tolist()
+    numeric_cols_path = processed_dir / f"{version}_numeric_cols.json"
+    with open(numeric_cols_path, "w") as f:
+        json.dump(numeric_cols, f)
     X_train[numeric_cols] = scaler.fit_transform(X_train[numeric_cols])
     X_test[numeric_cols] = scaler.transform(X_test[numeric_cols])
-
+scaler_path = processed_dir / f"{version}_scaler.joblib"
+joblib.dump(scaler, scaler_path)
 train_df = pd.concat([X_train, y_train], axis = 1)
 test_df = pd.concat([X_test, y_test], axis = 1)
 
