@@ -6,9 +6,10 @@ author: "Karan_Kishore"
 data:
   raw_path: "data/raw/ai4i2020.csv"
   processed_dir: "data/processed"
+  production_dir: "data/production"
   train_size: 7000
   test_size: 3000
-  current_version: "v3"
+  current_version: "v4"
 
 # Hyperparameters
 model_params:
@@ -33,5 +34,14 @@ features:
   scale_numeric: true
 
 training:
-  data_version: "v2"
-  model_version: "v3"
+  data_version: "v4"
+  model_version: "v4"
+
+monitoring:
+  prediction_log: "prediction_log.csv"
+  day2_data: "data/production/day2_data.csv"
+  error_threshold: 0.05
+
+api:
+  base_url: "http://127.0.0.1:8000"
+  predict_endpoint: "/predict"

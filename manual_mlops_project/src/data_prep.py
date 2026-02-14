@@ -35,6 +35,8 @@ X_test = X.iloc[train_size:].copy()
 y_train = y.iloc[:train_size].copy()
 y_test = y.iloc[train_size:].copy()
 
+
+"""
 if scale_numeric:
     scaler = StandardScaler()
     numeric_cols = X_train.select_dtypes(include=["int64", "float64"]).columns.tolist()
@@ -43,8 +45,9 @@ if scale_numeric:
         json.dump(numeric_cols, f)
     X_train[numeric_cols] = scaler.fit_transform(X_train[numeric_cols])
     X_test[numeric_cols] = scaler.transform(X_test[numeric_cols])
-scaler_path = processed_dir / f"{version}_scaler.joblib"
-joblib.dump(scaler, scaler_path)
+"""
+#scaler_path = processed_dir / f"{version}_scaler.joblib"
+#joblib.dump(scaler, scaler_path)
 train_df = pd.concat([X_train, y_train], axis = 1)
 test_df = pd.concat([X_test, y_test], axis = 1)
 

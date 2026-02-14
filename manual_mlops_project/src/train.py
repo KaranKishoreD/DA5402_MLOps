@@ -8,6 +8,12 @@ from datetime import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
 
 PROJ_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = PROJ_ROOT / "config.yaml"
@@ -32,6 +38,23 @@ y_train = train_df[target_col]
 X_test = test_df.drop(columns = target_col)
 y_test = test_df[target_col]
 
+numeric_cols = [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]"
+]
+
+categorical_cols = []
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", StandardScaler(), numeric_cols)
+    ],
+    remainder="passthrough"
+)
+
+
 params = config["model_params"]
 algorithm = params["algorithm"]
 
@@ -50,8 +73,16 @@ elif algorithm == "LogisticRegression":
 else:
     raise ValueError(f"Unsupported algorithm: {algorithm}")
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("model", model)
+])
+
+pipeline.fit(X_train, y_train)
+
+#model.fit(X_train, y_train)
+#y_pred = model.predict(X_test)
+y_pred = pipeline.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 if model_path.exists():
     raise FileExistsError(
@@ -68,7 +99,7 @@ try:
 except Exception:
     git_commit = "unknown"
 
-joblib.dump(model, model_path)
+joblib.dump(pipeline, model_path)
 
 metadata = {
     "model_version": model_version,
@@ -99,7 +130,6 @@ Algorithm: {algorithm}
 Accuracy: {accuracy:.4f}
 Git Commit: {git_commit}
 Timestamp: {metadata['timestamp']}
-Feature Names: {metadata['feature_names']}
 Hyperparameters: {params}
 Metrics: {metadata['metrics']}
 Classification Report: {metadata['metrics']['classification_report']}\n

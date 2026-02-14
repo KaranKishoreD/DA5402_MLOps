@@ -17,6 +17,8 @@ DEPLOYMENT_LOG = PROJ_ROOT / "deployment_log.csv"
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
+PREDICTION_LOG = PROJ_ROOT / config["monitoring"]["prediction_log"]
+log_exists = PREDICTION_LOG.exists()
 model_version = config["training"]["model_version"]
 model_path = MODELS_DIR / f"{model_version}_model.joblib"
 metadata_path = MODELS_DIR / f"{model_version}_metadata.json"
@@ -51,8 +53,6 @@ processed_dir = PROJ_ROOT / config["data"]["processed_dir"]
 data_version = config["training"]["data_version"]
 train_path = processed_dir / f"{data_version}_train.csv"
 
-scaler_path = processed_dir / f"{data_version}_scaler.joblib"
-scaler = joblib.load(scaler_path)
 if not train_path.exists():
     raise FileNotFoundError(f"Training data {train_path} not found")
 
@@ -118,9 +118,6 @@ class InferenceRequest(BaseModel):
 # class InferenceRequest(BaseModel):
 #    features: Dict[str, Any]
 
-numeric_cols_path = processed_dir / f"{data_version}_numeric_cols.json"
-with open(numeric_cols_path, "r") as f:
-    numeric_cols = json.load(f)
 
 @app.get("/")
 def health_check():
@@ -145,22 +142,44 @@ def schema():
 
 @app.post("/predict")
 def predict(request: InferenceRequest):
-    input_dict = request.model_dump()
-    
     input_dict = request.model_dump(by_alias=True)
     df = pd.DataFrame([input_dict])
     df = df[expected_features]
 
-    df[numeric_cols] = scaler.transform(df[numeric_cols])
+    print(df.columns.tolist())
+    print(expected_features)
 
     prediction = model.predict(df)[0]
     proba = model.predict_proba(df)[0]
+
+    with open(PREDICTION_LOG, "a", newline="") as f:
+        writer = csv.writer(f)
+
+        if not log_exists:
+            writer.writerow([
+                "timestamp",
+                "model_version",
+                "prediction",
+                "prob_class_0",
+                "prob_class_1"
+            ])
+
+        writer.writerow([
+            datetime.now().isoformat(),
+            model_version,
+            int(prediction),
+            float(proba[0]),
+            float(proba[1])
+        ])
+
     return {
         "model_version": model_version,
         "prediction": int(prediction),
         "probability_class_0": float(proba[0]),
         "probability_class_1": float(proba[1])
     }
+
+    
     """
     input_features = {
         "Air Temperature [K]": request.Air_temperature_K,
