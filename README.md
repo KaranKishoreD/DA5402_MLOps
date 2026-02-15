@@ -5,24 +5,19 @@ Karan Kishore, DA25D400
 
 ## Contents
 
-- Python scripts for the assignment.
-- `.gitignore` to exclude large or temporary files.
-- PDFs
-Documentation or explanations related to the project.
+- Python scripts for the assignment
+- `.gitignore` to exclude large or temporary files
+- PDFs / Documentation or explanations related to the project
 
 ## Usage
 
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/DA5402-MLOps-JAN26/assignment-1-KaranKishoreD.git
+1. Clone the repository:
+git clone https://github.com/DA5402-MLOps-JAN26/assignment-1-KaranKishoreD.git
 
-2. Navigate to the project folder
+2. Navigate to the project folder:
+cd assignment-1-KaranKishoreD
 
-  ```bash
-  cd assignment-1-KaranKishoreD
+3. Run the API server (inside the same container as step 4):
+python -m uvicorn src.inference:app --reload
 
-3. Run: 
-  ```bash
-  python -m uvicorn src.inference:app --reload
-
-4. Use monitor.py for finding data drifts from simulate_drift.py
+4. Use monitor.py to find data drifts from simulate_drift.py (runs in the same container as step 3)
