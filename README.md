@@ -5,7 +5,7 @@ Karan Kishore, DA25D400
 
 ## Contents
 
-- Python scriptsfor the assignment.
+- Python scripts for the assignment.
 - `.gitignore` to exclude large or temporary files.
 - PDFs
 Documentation or explanations related to the project.
