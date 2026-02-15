@@ -12,7 +12,7 @@ Karan Kishore, DA25D400
 ## Usage
 
 1. Clone the repository:
-git clone https://github.com/DA5402-MLOps-JAN26/assignment-1-KaranKishoreD.git
+git clone https://github.com/KaranKishoreD/DA5402_MLOps.git
 
 2. Navigate to the project folder:
 cd assignment-1-KaranKishoreD
