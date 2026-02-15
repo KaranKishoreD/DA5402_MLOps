@@ -18,11 +18,11 @@ Documentation or explanations related to the project.
 
 2. Navigate to the project folder
 
-```bash
-    cd assignment-1-KaranKishoreD
+  ```bash
+  cd assignment-1-KaranKishoreD
 
 3. Run: 
-```bash
-    python -m uvicorn src.inference:app --reload
+  ```bash
+  python -m uvicorn src.inference:app --reload
 
 4. Use monitor.py for finding data drifts from simulate_drift.py
